@@ -104,8 +104,8 @@ def get_food():
     cursor.execute("select code, name, amount from food_tb")
     result = cursor.fetchall()
     fields_list = cursor.description
-
     food_list = make_json(fields_list, result)
+    cursor.close()
 
     return jsonify(food_list)
 
@@ -124,6 +124,8 @@ def get_history():
     history_list = make_json(fields_list, result)
 
     print(history_list)
+
+    cursor.close()
 
     return jsonify(history_list)
 
