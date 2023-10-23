@@ -45,7 +45,7 @@ def post_join():
 #id 중복 확인
 @app.route('/capstone2/get_available', methods=['GET'])
 def get_available():
-    id_receive = request.headers.get('id_give')
+    id_receive = request.args.get('id_give')
 
     print(id_receive)
 
@@ -78,8 +78,8 @@ def post_history():
 # 로그인
 @app.route('/capstone2/get_login', methods=['GET'])
 def get_login():
-    id_receive = request.headers.get("id_give")
-    pw_receive = request.headers.get("pw_give")
+    id_receive = request.args.get("id_give")
+    pw_receive = request.args.get("pw_give")
 
     cursor = db.cursor()
     result = cursor.execute("select *  from account_tb where id = %s  and pw = %s", [id_receive, pw_receive])
@@ -112,7 +112,7 @@ def get_food():
 # 음식 섭취 내역 받기
 @app.route('/capstone2/get_history', methods=['GET'])
 def get_history():
-    id_receive = request.headers.get("id_give")
+    id_receive = request.args.get("id_give")
 
     print(id_receive)
 
