@@ -159,9 +159,27 @@ def get_nutrition():
 
     return jsonify(my_nutrition)
 
+@app.route('/capstone2/get_record', methods=['GET'])
+def get_record():
+    id_receive = request.args.get("id_give")
+
+    cursor = db.cursor()
+    cursor.execute(
+        "select date_format(R.record_date, '%%Y-%%m-%%d'), sum(R.kcal), sum(R.carbohydrate), sum(R.protein), sum(R.fat) from record_tb R, history_tb H where H.id = %s and H.num = R.num group by R.record_date",
+        [id_receive])
+    result = cursor.fetchall()
+    key_list = (("date", 0), ("kcal", 0), ("carbohydrate", 0), ("protein", 0), ("fat", 0))
+
+    my_record = make_json(key_list, result)
+    print(my_record)
+
+    cursor.close()
+
+    return jsonify(my_record)
+
 now = datetime.datetime.now()
 now_date = now.strftime('%Y-%m-%d')
 print(now_date)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5500)
