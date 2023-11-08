@@ -1,4 +1,8 @@
+import datetime
+
 import pymysql
+import uuid
+from model import set_kcal, set_rate, set_nutrition
 from flask import Flask, request, jsonify
 import json
 
@@ -22,7 +26,7 @@ def make_json(key_list, value_list):
     return result_list
 
 # 신규계정 등록
-@app.route('/capstone2/post_account', methods=['POST'])
+@app.route('/capstone2/post_join', methods=['POST'])
 def post_join():
     id_receive = request.form['id_give']
     pw_receive = request.form['pw_give']
@@ -32,12 +36,19 @@ def post_join():
     age_receive = request.form['age_give']
     height_receive = request.form['height_give']
     weight_receive = request.form['weight_give']
+    act_receive = request.form['act_give']
 
-    #print(id_receive, pw_receive, name_receive, sex_receive, type_receive, age_receive, height_receive, weight_receive)
+    print(id_receive, pw_receive, name_receive, sex_receive, type_receive, age_receive, height_receive, weight_receive, act_receive)
+
+    kcal = set_kcal(type_receive, sex_receive, float(act_receive), float(height_receive))
+    rate = set_rate(type_receive)
+
+    print(rate)
 
     cursor = db.cursor()
     cursor.execute("insert into account_tb (id, pw) value (%s, %s)", [id_receive, pw_receive])
-    cursor.execute("insert into user_tb (id, name, age, height, weight, body_type, sex) values(%s, %s, %s, %s, %s, %s, %s)", [id_receive, name_receive, int(age_receive), int(height_receive), int(weight_receive), type_receive, sex_receive])
+    cursor.execute("insert into user_tb (id, name, age, height, weight, body_type, sex, act) values(%s, %s, %s, %s, %s, %s, %s, %s)", [id_receive, name_receive, int(age_receive), int(height_receive), int(weight_receive), type_receive, sex_receive, act_receive])
+    cursor.execute("insert into nutrition_tb (id, kcal, carbohydrate, protein, fat) values(%s, %s, %s, %s, %s)", [id_receive, kcal, kcal*rate[0], kcal*rate[1], kcal*rate[2]])
     db.commit()
     cursor.close()
     return "1"
@@ -66,11 +77,18 @@ def post_history():
     amount_receive = request.form['amount_give']
     total_receive = request.form['total_give']
 
-    print(id_receive, code_receive, date_receive, amount_receive, total_receive)
+    num = uuid.uuid1()
 
     cursor = db.cursor()
-    cursor.execute("insert into record_tb (id, code, date, amount, total) values (%s, %s, %s, %s, %s)",
-                   [id_receive, code_receive, date_receive, float(amount_receive), float(total_receive)])
+    cursor.execute("select KCAL, CARBOHYDRATE, PROTEIN, FAT from food_tb where code  = %s", [code_receive])
+    result = cursor.fetchone()
+    data = set_nutrition(float(result[0]), float(result[1]), float(result[2]), float(result[3]), float(amount_receive))
+
+    cursor.execute("insert into history_tb (num, id, code, record_date, amount, total) values (%s, %s, %s, %s, %s, %s)",
+                   [num, id_receive, code_receive, date_receive, float(amount_receive), float(total_receive)])
+    cursor.execute("insert into record_tb (num, record_date, kcal, carbohydrate, protein, fat) values (%s, %s, %s, %s, %s, %s)",
+                   [num, date_receive, float(data[0]), float(data[1]), float(data[2]), float(data[3])])
+
     db.commit()
     cursor.close()
     return "1"
@@ -89,7 +107,7 @@ def get_login():
 
     if result == 1:
         cursor = db.cursor()
-        cursor.execute("select json_object('id', id, 'name', name, 'sex', sex, 'type', body_type, 'age', age, 'height', height, 'weight', weight) from user_tb where id = %s", [id_receive])
+        cursor.execute("select json_object('id', U.id, 'name', U.name, 'sex', U.sex, 'type', U.body_type, 'age', U.age, 'height', U.height, 'weight', U.weight, 'act', U.act, 'kcal', N.kcal, 'carbohydrate', N.carbohydrate, 'protein', N.protein, 'fat', N.fat) from user_tb U, nutrition_tb N where U.id = %s and U.id = N.id", [id_receive])
         info_list = cursor.fetchone()
         cursor.close()
 
@@ -114,20 +132,36 @@ def get_food():
 def get_history():
     id_receive = request.args.get("id_give")
 
-    print(id_receive)
-
     cursor = db.cursor()
-    cursor.execute("select R.id, F.name, date_format(R.date, '%%Y-%%m-%%d') as date, R.amount, R.total from record_tb R, food_tb F where id = %s and R.code = F.code", [id_receive])
+    cursor.execute("select H.id, F.name, date_format(H.record_date, '%%Y-%%m-%%d') as date, H.amount, H.total from history_tb H, food_tb F where id = %s and H.code = F.code", [id_receive])
     result = cursor.fetchall()
     fields_list = cursor.description
+    cursor.close()
 
     history_list = make_json(fields_list, result)
 
-    print(history_list)
+    return jsonify(history_list)
+
+@app.route('/capstone2/get_nutrition', methods=['GET'])
+def get_nutrition():
+    id_receive = request.args.get("id_give")
+
+    cursor = db.cursor()
+    cursor.execute("select * from nutrition_tb where id = %s", [id_receive])
+    result = cursor.fetchall()
+    fields_list = cursor.description
+
+    my_nutrition = make_json(fields_list, result)
+
+    #print(my_nutrition)
 
     cursor.close()
 
-    return jsonify(history_list)
+    return jsonify(my_nutrition)
+
+now = datetime.datetime.now()
+now_date = now.strftime('%Y-%m-%d')
+print(now_date)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=5500)
