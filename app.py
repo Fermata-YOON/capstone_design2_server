@@ -133,7 +133,7 @@ def get_history():
     id_receive = request.args.get("id_give")
 
     cursor = db.cursor()
-    cursor.execute("select H.id, F.name, date_format(H.record_date, '%%Y-%%m-%%d') as date, H.amount, H.total from history_tb H, food_tb F where id = %s and H.code = F.code", [id_receive])
+    cursor.execute("select H.id, F.name, date_format(H.record_date, '%%Y-%%m-%%d') as date, H.amount, H.total from history_tb H, food_tb F where id = %s and H.code = F.code order by H.record_date desc", [id_receive])
     result = cursor.fetchall()
     fields_list = cursor.description
     cursor.close()
@@ -165,7 +165,7 @@ def get_record():
 
     cursor = db.cursor()
     cursor.execute(
-        "select date_format(R.record_date, '%%Y-%%m-%%d'), sum(R.kcal), sum(R.carbohydrate), sum(R.protein), sum(R.fat) from record_tb R, history_tb H where H.id = %s and H.num = R.num group by R.record_date",
+        "select date_format(R.record_date, '%%Y-%%m-%%d'), sum(R.kcal), sum(R.carbohydrate), sum(R.protein), sum(R.fat) from record_tb R, history_tb H where H.id = %s and H.num = R.num group by R.record_date order by R.record_date desc",
         [id_receive])
     result = cursor.fetchall()
     key_list = (("date", 0), ("kcal", 0), ("carbohydrate", 0), ("protein", 0), ("fat", 0))
@@ -182,4 +182,4 @@ now_date = now.strftime('%Y-%m-%d')
 print(now_date)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5500)
