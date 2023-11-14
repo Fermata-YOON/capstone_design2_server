@@ -2,8 +2,9 @@ import datetime
 
 import pymysql
 import uuid
-from model import set_kcal, set_rate, set_nutrition
+from model import set_kcal, set_rate, set_nutrition, load_kmean
 from flask import Flask, request, jsonify
+import numpy as np
 import json
 
 app = Flask(__name__)
@@ -153,8 +154,6 @@ def get_nutrition():
 
     my_nutrition = make_json(fields_list, result)
 
-    #print(my_nutrition)
-
     cursor.close()
 
     return jsonify(my_nutrition)
@@ -176,10 +175,38 @@ def get_record():
     cursor.close()
 
     return jsonify(my_record)
+@app.route('/capstone2/get_model_data', methods=['GET'])
+def get_model_data():
+    id_receive = request.args.get("id_give")
 
-now = datetime.datetime.now()
-now_date = now.strftime('%Y-%m-%d')
-print(now_date)
+    ### load train_data
+    cursor = db.cursor()
+    cursor.execute("select CARBOHYDRATE, protein, fat from food_tb")
+    result = cursor.fetchall()
+    train_data = np.array(result)
+
+    ### load user nutrition_data
+    cursor.execute("select carbohydrate, protein, fat from nutrition_tb where id = %s", [id_receive])
+    result1 = cursor.fetchall()
+    standard = np.array(result1)
+
+    ### load record_data
+    cursor.execute(
+        "select sum(R.carbohydrate), sum(R.protein), sum(R.fat) from record_tb R, history_tb H where H.id = 'test1' and H.num = R.num and R.record_date = '2023-11-13'")
+    result2 = cursor.fetchall()
+    user_data = np.array(result2)
+
+    ### set test_data
+    test_data = standard-user_data
+
+    print(train_data)
+    print(test_data)
+
+    cursor.close()
+
+    load_kmean(train_data, test_data)
+
+    return "1"
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5500)
