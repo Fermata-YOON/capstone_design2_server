@@ -19,6 +19,12 @@ app.config['JSON_AS_ASCII'] = False
 
 db = pymysql.connect(host='222.107.127.85', port=3307, user='root', password='*terry1605', db='capstone_design2', charset='utf8')
 
+cs = db.cursor()
+cs.execute("select CARBOHYDRATE, protein, fat from food_tb")
+res = cs.fetchall()
+train_data = np.array(res)
+cs.close()
+
 def make_json(key_list, value_list):
     column_list = []
     for i in key_list:
@@ -46,12 +52,12 @@ def post_join():
     weight_receive = request.form['weight_give']
     act_receive = request.form['act_give']
 
-    print(id_receive, pw_receive, name_receive, sex_receive, type_receive, age_receive, height_receive, weight_receive, act_receive)
+    #print(id_receive, pw_receive, name_receive, sex_receive, type_receive, age_receive, height_receive, weight_receive, act_receive)
 
     kcal = set_kcal(type_receive, sex_receive, float(act_receive), float(height_receive))
     rate = set_rate(type_receive)
 
-    print(rate)
+    #print(rate)
 
     cursor = db.cursor()
     cursor.execute("insert into account_tb (id, pw) value (%s, %s)", [id_receive, pw_receive])
@@ -66,7 +72,7 @@ def post_join():
 def get_available():
     id_receive = request.args.get('id_give')
 
-    print(id_receive)
+    #print(id_receive)
 
     cursor = db.cursor()
     id_status = cursor.execute("select * from account_tb where id = %s", [id_receive])
@@ -111,11 +117,11 @@ def get_login():
     result = cursor.execute("select *  from account_tb where id = %s  and pw = %s", [id_receive, pw_receive])
     cursor.close()
 
-    print(id_receive, pw_receive, result)
+    #print(id_receive, pw_receive, result)
 
     if result == 1:
         cursor = db.cursor()
-        cursor.execute("select json_object('id', U.id, 'name', U.name, 'sex', U.sex, 'type', U.body_type, 'age', U.age, 'height', U.height, 'weight', U.weight, 'act', U.act, 'kcal', N.kcal, 'carbohydrate', N.carbohydrate, 'protein', N.protein, 'fat', N.fat) from user_tb U, nutrition_tb N where U.id = %s and U.id = N.id", [id_receive])
+        cursor.execute("select json_object('id', U.id, 'name', U.name, 'sex', U.sex, 'type', U.body_type, 'age', U.age, 'height', U.height, 'weight', U.weight, 'act', U.act, 'preference', U.preference, 'kcal', N.kcal, 'carbohydrate', N.carbohydrate, 'protein', N.protein, 'fat', N.fat) from user_tb U, nutrition_tb N where U.id = %s and U.id = N.id", [id_receive])
         info_list = cursor.fetchone()
         cursor.close()
 
@@ -177,7 +183,7 @@ def get_record():
     key_list = (("date", 0), ("kcal", 0), ("carbohydrate", 0), ("protein", 0), ("fat", 0))
 
     my_record = make_json(key_list, result)
-    print(my_record)
+    #print(my_record)
 
     cursor.close()
 
@@ -188,7 +194,7 @@ def post_preference():
     id_receive = request.form["id_give"]
     category_receive = request.form["category_give"]
 
-    print(id_receive, category_receive)
+    #print(id_receive, category_receive)
     cursor = db.cursor()
     cursor.execute(
         "update user_tb set preference = %s where id = %s", [category_receive, id_receive])
@@ -204,13 +210,12 @@ def get_recommend():
     label_receive = request.args.get("label_give")
     tot = []
 
+    #print(id_receive, label_receive)
     ### load train_data
-    cursor = db.cursor()
-    cursor.execute("select CARBOHYDRATE, protein, fat from food_tb")
-    result = cursor.fetchall()
-    train_data = np.array(result)
+    global train_data
 
     ### load user nutrition_data
+    cursor = db.cursor()
     cursor.execute("select carbohydrate, protein, fat from nutrition_tb where id = %s", [id_receive])
     result1 = cursor.fetchall()
     standard = np.array(result1)
@@ -225,8 +230,12 @@ def get_recommend():
     test_data = standard-user_data
 
     ### execute model
-    if label_receive in ['밥', '빵', '면', '고기']:
+    if label_receive in ['rice', 'bread', 'noodle', 'meat']:
         index = load_kmean(train_data, test_data, 20)
+        if label_receive == 'rice': label_receive = '밥'
+        elif label_receive == 'bread': label_receive = '빵'
+        elif label_receive == 'noodle': label_receive = '면'
+        elif label_receive == 'meat': label_receive = '고기'
 
     else:
         index = load_kmean(train_data, test_data, 10)
@@ -251,6 +260,8 @@ def get_recommend():
 
     recommend = make_json(key_list, tot)
 
+    #print(recommend)
+
     cursor.close()
 
     return jsonify(recommend)
@@ -267,7 +278,7 @@ def get_analysis():
 
     result = unsuperviesd_learning(eat_data)
 
-    return jsonify({'carbohydrate' : result[0], 'protein': result[1], 'fat': result[2]})
+    return jsonify([{'carbohydrate' : result[0], 'protein': result[1], 'fat': result[2]}])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
