@@ -35,7 +35,7 @@ def set_rate(body_type):
 def set_nutrition(kcal, carbohydrate, protein, fat, amount):
     return [kcal*amount, carbohydrate*amount, protein*amount, fat*amount]
 
-def load_kmean(train_data, test_data):
+def load_kmean(train_data, test_data, cnt):
   # 예제 데이터 생성
   # 음식 영양소의 data가 들어감
   #X_train = np.random.rand(100, 3)
@@ -57,12 +57,12 @@ def load_kmean(train_data, test_data):
 
   # 각 거리 메트릭에 대한 반복
     for metric in distance_metrics:
-        knn = KNeighborsClassifier(n_neighbors=10, metric=metric)
+        knn = KNeighborsClassifier(n_neighbors=cnt, metric=metric)
         knn.fit(X_train, y_train)
 
       # k-최근접 이웃의 인덱스를 찾습니다.
         distances, indices = knn.kneighbors(X_test)
-        print(i)
+        #print(i)
         if i == 0 :
             df = pd.DataFrame({ "euclidean" : indices.flatten() })
             i += 1
@@ -86,52 +86,31 @@ def load_kmean(train_data, test_data):
 
       # print("Final Prediction:", final_prediction)
       # print("\n",df)
-    print(df)
-    food_1 = []
-    for i in range(10):
-      for j in range(10):
-          if df["euclidean"][i] == df["manhattan"][j]:
-              food_1.append(i)
+    #print(df)
 
-    food_last = []
-    for i in food_1:
-      for j in range(10):
-          if df["euclidean"][i] == df["cosine"][j]:
-              food_last.append(i)
+    all_index = dict()
+    first = []
+    second = []
 
-    print("\neuclidean과 mahantan의 교집합 index : ", food_1)
-    print("위의 집합에서 cosie 교집합 index :", food_last)
-    print("위에 결과는 euclidean_index기준으로 봐주세요")
+    for i in range(cnt):
+        tmp = [df["euclidean"][i], df["manhattan"][i], df["cosine"][i]]
+        for x in tmp:
+            all_index[x] = all_index.get(x, 0) + 1
 
-    food_index = []
+    for key, val in all_index.items():
+        if val == 3:
+            first.append(key)
+        elif val == 2:
+            second.append(key)
 
-    if len(food_last) == 0:
-        for i in food_1:
-            food_index.append(df['euclidean'][i])
-        print(food_index)
+    res = [first, second]
 
-    else:
-        for i in food_last:
-            food_index.append(df['euclidean'][i])
-        print(food_index)
+    #print(res)
 
 
-      # 3D 산점도 그리기
-    fig = plt.figure(figsize=(15, 20))
-    ax = fig.add_subplot(111, projection='3d')
+    #print("euclidean, manhattan, cosine 중 두개에 속하는 index : ", second_recommend)
+    #print("euclidean, manhattan, cosine 3개의 교집합 index :", first_recommend)
+    #print("위에 결과는 euclidean_index기준으로 봐주세요")
 
-    # 훈련 데이터 포인트를 그립니다.
-    ax.scatter(X_train[y_train == 0][:, 0], X_train[y_train == 0][:, 1], X_train[y_train == 0][:, 2], c='r',
-             marker='o', label='Class 0')
-    ax.scatter(X_train[y_train == 1][:, 0], X_train[y_train == 1][:, 1], X_train[y_train == 1][:, 2], c='g',
-             marker='^', label='Class 1')
 
-    # 테스트 데이터 포인트를 그립니다.
-    ax.scatter(X_test[:, 0], X_test[:, 1], X_test[:, 2], c='b', marker='x', label='Test Data')
-
-    ax.set_xlabel('Feature 1')
-    ax.set_ylabel('Feature 2')
-    ax.set_zlabel('Feature 3')
-
-    plt.legend(loc='upper right')
-    plt.show()
+    return res

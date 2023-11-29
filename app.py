@@ -5,7 +5,14 @@ import uuid
 from model import set_kcal, set_rate, set_nutrition, load_kmean
 from flask import Flask, request, jsonify
 import numpy as np
+from datetime import datetime, timedelta
+from unsupervised import unsuperviesd_learning
 import json
+
+today = datetime.today().strftime("%Y-%m-%d")
+yesterday = (datetime.today() - timedelta(1)).strftime('%Y-%m-%d')
+
+print(today, yesterday)
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
@@ -175,9 +182,27 @@ def get_record():
     cursor.close()
 
     return jsonify(my_record)
-@app.route('/capstone2/get_model_data', methods=['GET'])
-def get_model_data():
+
+@app.route('/capstone2/post_preference', methods = ['POST'])
+def post_preference():
+    id_receive = request.form["id_give"]
+    category_receive = request.form["category_give"]
+
+    print(id_receive, category_receive)
+    cursor = db.cursor()
+    cursor.execute(
+        "update user_tb set preference = %s where id = %s", [category_receive, id_receive])
+    db.commit()
+
+    cursor.close()
+
+    return "1"
+
+@app.route('/capstone2/get_recommend', methods=['GET'])
+def get_recommend():
     id_receive = request.args.get("id_give")
+    label_receive = request.args.get("label_give")
+    tot = []
 
     ### load train_data
     cursor = db.cursor()
@@ -192,21 +217,57 @@ def get_model_data():
 
     ### load record_data
     cursor.execute(
-        "select sum(R.carbohydrate), sum(R.protein), sum(R.fat) from record_tb R, history_tb H where H.id = 'test1' and H.num = R.num and R.record_date = '2023-11-13'")
+        "select ifnull(sum(R.carbohydrate), 0) as carbohydrate, ifnull(sum(R.protein), 0) as protein, ifnull(sum(R.fat), 0) as fat from record_tb R, history_tb H where H.id = %s and H.num = R.num and R.record_date in (%s, %s)", [id_receive, today, yesterday])
     result2 = cursor.fetchall()
     user_data = np.array(result2)
 
     ### set test_data
     test_data = standard-user_data
 
-    print(train_data)
-    print(test_data)
+    ### execute model
+    if label_receive in ['밥', '빵', '면', '고기']:
+        index = load_kmean(train_data, test_data, 20)
+
+    else:
+        index = load_kmean(train_data, test_data, 10)
+        label_receive = ['밥', '빵', '면', '고기']
+
+    ### make result data
+    for i in index[0]:
+        cursor.execute(
+            "select '매우추천' as rmd, F.name as name, F.label as label from (select @rownum:=@rownum+1 as num, name, label, kcal, carbohydrate, protein, fat from (select @rownum:=-1) as n, food_tb) F where F.num = %s",  [i])
+        result = cursor.fetchone()
+        if result[2] is not None and result[2] in label_receive:
+            tot.append(result)
+
+    for i in index[1]:
+        cursor.execute(
+            "select '추천' as rmd, F.name as name, F.label as label from (select @rownum:=@rownum+1 as num, name, detail, kcal, carbohydrate, protein, fat, label from (select @rownum:=-1) as n, food_tb) F where F.num = %s",  [i])
+        result = cursor.fetchone()
+        if result[2] is not None and result[2] in label_receive:
+            tot.append(result)
+    ### convert result data to json
+    key_list = (("detail", 0), ("name", 0), ("category", 0))
+
+    recommend = make_json(key_list, tot)
 
     cursor.close()
 
-    load_kmean(train_data, test_data)
+    return jsonify(recommend)
 
-    return "1"
+@app.route('/capstone2/get_analysis', methods=['GET'])
+def get_analysis():
+    id_receive = request.args.get("id_give")
+    cursor = db.cursor()
+
+    cursor.execute(
+        "select R.CARBOHYDRATE, R.PROTEIN, R.FAT from history_tb H, record_tb R where H.id = %s and H.num = R.num order by H.record_date desc limit 20", [id_receive])
+    query = cursor.fetchall()
+    eat_data = np.array(query)
+
+    result = unsuperviesd_learning(eat_data)
+
+    return jsonify({'carbohydrate' : result[0], 'protein': result[1], 'fat': result[2]})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
