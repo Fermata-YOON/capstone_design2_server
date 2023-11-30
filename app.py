@@ -281,4 +281,4 @@ def get_analysis():
     return jsonify({'carbohydrate' : result[0], 'protein': result[1], 'fat': result[2]})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5600)
+    app.run(host='0.0.0.0', port=5000)
