@@ -147,7 +147,7 @@ def get_history():
     id_receive = request.args.get("id_give")
 
     cursor = db.cursor()
-    cursor.execute("select H.id, F.name, date_format(H.record_date, '%%Y-%%m-%%d') as date, H.amount, H.total from history_tb H, food_tb F where id = %s and H.code = F.code order by H.record_date desc", [id_receive])
+    cursor.execute("select H.num, H.id, F.name, date_format(H.record_date, '%%Y-%%m-%%d') as date, H.amount, H.total from history_tb H, food_tb F where id = %s and H.code = F.code order by H.record_date desc", [id_receive])
     result = cursor.fetchall()
     fields_list = cursor.description
     cursor.close()
