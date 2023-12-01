@@ -107,6 +107,17 @@ def post_history():
     cursor.close()
     return "1"
 
+@app.route('/capstone2/delete_history', methods=['POST'])
+def delete_history():
+    num_receive = request.form['num_give']
+
+    cursor = db.cursor()
+    cursor.execute("delete from history_tb where num = %s", [num_receive])
+
+    db.commit()
+    cursor.close()
+    return "1"
+
 # 로그인
 @app.route('/capstone2/get_login', methods=['GET'])
 def get_login():
