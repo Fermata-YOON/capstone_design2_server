@@ -272,13 +272,15 @@ def get_analysis():
     cursor = db.cursor()
 
     cursor.execute(
-        "select R.CARBOHYDRATE, R.PROTEIN, R.FAT from history_tb H, record_tb R where H.id = %s and H.num = R.num order by H.record_date desc limit 20", [id_receive])
+        "select R.CARBOHYDRATE, R.PROTEIN, R.FAT from history_tb H, record_tb R where H.id = %s and H.num = R.num order by H.record_date desc limit 21", [id_receive])
     query = cursor.fetchall()
     eat_data = np.array(query)
 
-    result = unsuperviesd_learning(eat_data)
-
-    return jsonify({'carbohydrate' : int(result[0]), 'protein': int(result[1]), 'fat': int(result[2])})
+    if len(eat_data) == 0:
+        return jsonify({'carbohydrate' : 0, 'protein': 0, 'fat': 0})
+    else:
+        result = unsuperviesd_learning(eat_data)
+        return jsonify({'carbohydrate' : int(result[0]), 'protein': int(result[1]), 'fat': int(result[2])})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
