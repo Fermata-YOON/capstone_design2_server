@@ -67,6 +67,31 @@ def post_join():
     cursor.close()
     return "1"
 
+@app.route('/capstone2/edit_profile', methods=['POST'])
+def edit_profile():
+    id_receive = request.form['id_give']
+    sex_receive = request.form['sex_give']
+    age_receive = request.form['age_give']
+    height_receive = request.form['height_give']
+    weight_receive = request.form['weight_give']
+    type_receive = request.form['type_give']
+    act_receive = request.form['act_give']
+
+    cursor = db.cursor()
+    cursor.execute(
+        "update user_tb set age = %s, height = %s, weight = %s, body_type = %s, act = %s where id = %s", [age_receive, height_receive, weight_receive, type_receive, act_receive, id_receive])
+
+    kcal = set_kcal(type_receive, sex_receive, float(act_receive), float(height_receive))
+    rate = set_rate(type_receive)
+
+    cursor.execute("update nutrition_tb set kcal = %s, carbohydrate = %s, protein = %s, fat = %s where id = %s",
+                   [kcal, kcal * rate[0], kcal * rate[1], kcal * rate[2], id_receive])
+
+    db.commit()
+    cursor.close()
+
+    return "1"
+
 #id 중복 확인
 @app.route('/capstone2/get_available', methods=['GET'])
 def get_available():
@@ -294,4 +319,4 @@ def get_analysis():
         return jsonify({'carbohydrate' : int(result[0]), 'protein': int(result[1]), 'fat': int(result[2])})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5050)
