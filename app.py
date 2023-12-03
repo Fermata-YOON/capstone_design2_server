@@ -67,6 +67,18 @@ def post_join():
     cursor.close()
     return "1"
 
+@app.route('/capstone2/delete_user', methods=['POST'])
+def delete_user():
+    id_receive = request.form['id_give']
+
+    cursor = db.cursor()
+    cursor.execute("delete from account_tb where id = %s", [id_receive])
+    db.commit()
+    cursor.close()
+
+    return "1"
+
+
 @app.route('/capstone2/edit_profile', methods=['POST'])
 def edit_profile():
     id_receive = request.form['id_give']
