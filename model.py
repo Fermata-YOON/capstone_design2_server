@@ -36,17 +36,10 @@ def set_nutrition(kcal, carbohydrate, protein, fat, amount):
     return [kcal*amount, carbohydrate*amount, protein*amount, fat*amount]
 
 def load_kmean(train_data, test_data, cnt):
-  # 예제 데이터 생성
-  # 음식 영양소의 data가 들어감
-  #X_train = np.random.rand(100, 3)
     X_train = train_data
-
   # 임의의 값 배정
     y_train = np.random.randint(2, size=train_data.shape[0])
 
-  #X_test = np.array([[1.5, 2.5, 5], [1, 3, 5]])
-  #X_test에는 부족한 영양소의 탄,단,지로 3차원 데이터 들어감
-  #X_test = np.random.rand(1, 3)
     X_test = test_data
 
   # 다양한 거리 메트릭을 정의합니다.
@@ -81,7 +74,7 @@ def load_kmean(train_data, test_data, cnt):
         # print("------------------------------------\n")
         # predictions.append(y_pred)
 
-      # 앙상블 방법으로 최종 예측을 수행합니다.
+    # 앙상블 방법으로 최종 예측을 수행합니다.
     final_prediction = np.round(np.mean(predictions, axis=0))
 
       # print("Final Prediction:", final_prediction)
@@ -106,11 +99,7 @@ def load_kmean(train_data, test_data, cnt):
     res = [first, second]
 
     #print(res)
-
-
     #print("euclidean, manhattan, cosine 중 두개에 속하는 index : ", second_recommend)
     #print("euclidean, manhattan, cosine 3개의 교집합 index :", first_recommend)
     #print("위에 결과는 euclidean_index기준으로 봐주세요")
-
-
     return res
